@@ -1,5 +1,6 @@
 #include "arduinoFFT.h"
 #include "FastLED.h"
+#include <SPI.h>
 
 #define BUTTON_PIN 7
 bool buttonState;
@@ -31,10 +32,11 @@ double findMax(double* nums, int start, int last);
 bool hasChanged();
 
 void setup() {
+  Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(BUTTON_PIN,INPUT);
-
-  buttonState = digitalRead(BUTTON_PIN);
+  ADCSRA = 0b11100101;      // set ADC to free running mode and set pre-scalar to 32 (0xe5)
+  ADMUX = 0b00000000;       // use pin A0 and external voltage reference
 
   FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
   FastLED.setBrightness(100);
@@ -51,29 +53,27 @@ void setup() {
 }
 
 void loop() {
-  visualize_1();
   visualize_2();
+  visualize_1();
 }
 
 void runFFT(){
 
-    /*SAMPLING*/
-    for(int i=0; i<SAMPLES; i++)
-    {
-      microseconds = micros();    //Overflows after around 70 minutes!
-
-      vReal[i] = analogRead(0);
-      vImag[i] = 0;
-
-      while(micros() < (microseconds + sampling_period_us)){
-      }
-    }
+  // ++ Sampling
+  for(int i=0; i<SAMPLES; i++)
+   {
+     while(!(ADCSRA & 0x10));        // wait for ADC to complete current conversion ie ADIF bit set
+     ADCSRA = 0b11110101 ;               // clear ADIF bit so that ADC can do next operation (0xf5)
+     int value = ADC - 512 ;                 // Read from ADC and subtract DC offset caused value
+     vReal[i]= value/8;                      // Copy to bins after compressing
+     vImag[i] = 0;
+   }
+   // -- Sampling
 
     /*FFT*/
     FFT.Windowing(vReal, SAMPLES, FFT_WIN_TYP_HAMMING, FFT_FORWARD);
     FFT.Compute(vReal, vImag, SAMPLES, FFT_FORWARD);
     FFT.ComplexToMagnitude(vReal, vImag, SAMPLES);
-    double peak = FFT.MajorPeak(vReal, SAMPLES, SAMPLING_FREQUENCY);
 }
 
 void visualize_1(){
@@ -81,23 +81,6 @@ void visualize_1(){
   uint8_t hue;
   runFFT();
   FastLED.clear();
-  //bass visualization
-  bassMax = findMax(vReal,0,SAMPLES/4); //largest number in the first half of vReal[]
-  if(bassTemp>NUM_LEDS/2) bassMax = NUM_LEDS/4;
-
-  for(int i=0; i<bassMax*normCoef*2; i++){
-    leds[i] = CRGB::Blue;
-    leds[NUM_LEDS-1-i] = CRGB::Red;
-  };
-
-  trebMax = findMax(vReal,SAMPLES/4,SAMPLES/2); //largest number in the first half of vReal[]
-  if(trebTemp>NUM_LEDS/2) trebMax = NUM_LEDS/4;
-
-  for(int i=0; i<trebMax*normCoef; i++){
-    leds[NUM_LEDS/2+i] = CRGB::Green;
-    leds[NUM_LEDS/2-i] = CRGB::Green;
-  };
-  FastLED.show();
 
   while(1){
     bassMax--;
@@ -135,18 +118,20 @@ void visualize_1(){
 }
 
 void visualize_2(){
-  FastLED.clear();
-  runFFT();
-  for(int i=0; i<SAMPLES/2; i++){
-  //    Serial.print(i*NUM_LEDS/(SAMPLES/2));
-  //    Serial.print(", ");
-  //    Serial.println(vReal[i]);
-    for(int k=i*NUM_LEDS/(SAMPLES/2); k<i*NUM_LEDS/(SAMPLES/2)+vReal[i]; k++){
-      leds[k] = CRGB::Blue;
+  while(1){
+    FastLED.clear();
+    runFFT();
+    for(int i=0; i<SAMPLES/2; i++){
+    //    Serial.print(i*NUM_LEDS/(SAMPLES/2));
+    //    Serial.print(", ");
+    //    Serial.println(vReal[i]);
+      for(int k=i*NUM_LEDS/(SAMPLES/2); k<i*NUM_LEDS/(SAMPLES/2)+vReal[i]; k++){
+        leds[k] = CRGB::Blue;
+      }
     }
+    FastLED.show();
+    if(hasChanged()){return;}
   }
-  FastLED.show();
-  if(hasChanged()) return;
 }
 
 //finds the average from start to last inclusive
@@ -171,7 +156,12 @@ double findMax(double* nums, int start, int last){
 // Changes buttonState to equal BUTTON_PIN
 bool hasChanged(){
   bool temp = digitalRead(BUTTON_PIN);
-  if(temp==buttonState) return 0;
-  buttonState = temp;
-  return 1;
+  if(temp!=buttonState){
+    Serial.print("here");
+    delay(250);
+    return 1;
+  }
+
+
+  return 0;
 }
