@@ -108,6 +108,7 @@ void visualize_1(){
       leds[NUM_LEDS-1-i] = CHSV(hue,255-bassMax*5,255);
     }
 
+
     //    //treble visualization
     //    trebTemp = avg(vReal,SAMPLES/4,SAMPLES/2); //largest number in the second half of vReal[]
     //    if(trebTemp>NUM_LEDS/4) trebTemp = NUM_LEDS/4;
