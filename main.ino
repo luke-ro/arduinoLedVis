@@ -51,10 +51,13 @@ void setup() {
     delay(50);
 
   }
+  Serial.println("begin");
 }
 
 void loop() {
+
   visualize_2();
+  visualize_3();
   visualize_1();
 }
 
@@ -81,11 +84,14 @@ void runFFT(){
 }
 
 void visualize_1(){
-  int bassMax,trebMax,bassTemp,trebTemp;
-  uint8_t hue;
-  maxH = 50;
-  runFFT();
-  FastLED.clear();
+
+  int bassMax=255,trebMax=255;
+  int bassTemp,trebTemp;
+  uint8_t hue=0;
+  //maxH = 50;
+  //runFFT();
+
+  //FastLED.clear();
 
   while(1){
     bassMax--;
@@ -98,28 +104,35 @@ void visualize_1(){
 
     //bass visualization
     //    bassTemp = findMax(vReal,0,SAMPLES/4); //largest number in the first half of vReal[]
-    bassTemp = vReal[0];
+    bassTemp = int(vReal[0]);
     if(bassTemp>NUM_LEDS/4) bassTemp = NUM_LEDS/4;
     if(bassTemp>bassMax) bassMax = bassTemp;
 
-    for(int i=0; i<bassMax*normCoef*2; i++){
-
-      leds[i] = CHSV(hue,255-bassMax*5,255);
-      leds[NUM_LEDS-1-i] = CHSV(hue,255-bassMax*5,255);
+    for(int i=0; i<bassMax*normCoef*2 && bassMax*normCoef*2<NUM_LEDS/2; i++){
+      if(bassMax*normCoef*2<NUM_LEDS/8*3){
+        leds[i] = CHSV(hue,255,255);
+        leds[NUM_LEDS-1-i] = CHSV(hue,255,255);
+      }else{
+        leds[i] = CHSV(hue,(-255*8/NUM_LEDS)*((bassMax*normCoef*2)-(NUM_LEDS/2)),255);
+        leds[NUM_LEDS-1-i] = CHSV(hue,(-255*8/NUM_LEDS)*((bassMax*normCoef*2)-(NUM_LEDS/2)),255);
+      }
     }
 
 
-    //    //treble visualization
-    //    trebTemp = avg(vReal,SAMPLES/4,SAMPLES/2); //largest number in the second half of vReal[]
-    //    if(trebTemp>NUM_LEDS/4) trebTemp = NUM_LEDS/4;
-    //    if(trebTemp>trebMax) trebMax = trebTemp;
-    //
-    //    for(int i=0; i<trebMax*normCoef; i++){
-    //      leds[NUM_LEDS/2+i] = CRGB::Green;
-    //      leds[NUM_LEDS/2-i] = CRGB::Green;
-    //    }
+        //treble visualization
+        // trebTemp = sum(vReal,SAMPLES/4,SAMPLES/2); //largest number in the second half of vReal[]
+        trebTemp = vReal[SAMPLES/8+1];
+        if(trebTemp>NUM_LEDS/4) trebTemp = NUM_LEDS/4;
+        if(trebTemp>trebMax) trebMax = trebTemp;
+
+        for(int i=0; i<trebMax*normCoef && trebMax*normCoef<NUM_LEDS/2; i++){
+          leds[NUM_LEDS/2+i] = CHSV(hue-120,255,255);
+          leds[NUM_LEDS/2-i] = CHSV(hue-120,255,255);
+        }
+
+    //for(int i=0;i<NUM_LEDS; i++)leds[i] = CHSV(hue,255,255);
     FastLED.show();
-    if(hasChanged()) return;
+    if(hasChanged()){ return;}
   }
 }
 
@@ -134,6 +147,24 @@ void visualize_2(){
     //    Serial.println(vReal[i]);
       for(int k=i*NUM_LEDS/(SAMPLES/2); k<i*NUM_LEDS/(SAMPLES/2)+vReal[i]; k++){
         leds[k] = CRGB::Blue;
+      }
+    }
+    FastLED.show();
+    if(hasChanged()){return;}
+  }
+}
+
+void visualize_3(){
+  maxH = NUM_LEDS/(SAMPLES/2);
+  while(1){
+    FastLED.clear();
+    runFFT();
+    for(int i=0; i<SAMPLES/2; i++){
+    //    Serial.print(i*NUM_LEDS/(SAMPLES/2));
+    //    Serial.print(", ");
+    //    Serial.println(vReal[i]);
+      for(int k=i*NUM_LEDS/(SAMPLES/2); k<i*NUM_LEDS/(SAMPLES/2)+vReal[i]; k++){
+        leds[k] = CRGB::Red;
       }
     }
     FastLED.show();
@@ -159,12 +190,21 @@ double findMax(double* nums, int start, int last){
   return temp;
 }
 
+double sum(double* nums, int start, int last){
+  double temp=0;
+  for(int i = start; i < last+1; i++){
+    temp += nums[i];
+  }
+  return temp;
+}
+
+
 //returns true if the state of BUTTON_PIN is different than buttonState.
 // Changes buttonState to equal BUTTON_PIN
 bool hasChanged(){
   bool temp = digitalRead(BUTTON_PIN);
   if(temp!=buttonState){
-    Serial.print("here");
+
     delay(250);
     return 1;
   }
