@@ -55,10 +55,9 @@ void setup() {
 }
 
 void loop() {
-
-  visualize_2();
-  visualize_3();
   visualize_1();
+  visualize_2();
+
 }
 
 void runFFT(){
@@ -85,7 +84,7 @@ void runFFT(){
 
 void visualize_1(){
 
-  int bassMax=255,trebMax=255;
+  int bassMax=1,trebMax=1;
   int bassTemp,trebTemp;
   uint8_t hue=0;
   //maxH = 50;
@@ -137,16 +136,13 @@ void visualize_1(){
 }
 
 void visualize_2(){
-  maxH = NUM_LEDS/(SAMPLES/2);
+  uint8_t hue = random8();
   while(1){
     FastLED.clear();
     runFFT();
     for(int i=0; i<SAMPLES/2; i++){
-    //    Serial.print(i*NUM_LEDS/(SAMPLES/2));
-    //    Serial.print(", ");
-    //    Serial.println(vReal[i]);
       for(int k=i*NUM_LEDS/(SAMPLES/2); k<i*NUM_LEDS/(SAMPLES/2)+vReal[i]; k++){
-        leds[k] = CRGB::Blue;
+        leds[k] = CHSV(hue+i*255/(SAMPLES/2),255,255);
       }
     }
     FastLED.show();
@@ -154,23 +150,7 @@ void visualize_2(){
   }
 }
 
-void visualize_3(){
-  maxH = NUM_LEDS/(SAMPLES/2);
-  while(1){
-    FastLED.clear();
-    runFFT();
-    for(int i=0; i<SAMPLES/2; i++){
-    //    Serial.print(i*NUM_LEDS/(SAMPLES/2));
-    //    Serial.print(", ");
-    //    Serial.println(vReal[i]);
-      for(int k=i*NUM_LEDS/(SAMPLES/2); k<i*NUM_LEDS/(SAMPLES/2)+vReal[i]; k++){
-        leds[k] = CRGB::Red;
-      }
-    }
-    FastLED.show();
-    if(hasChanged()){return;}
-  }
-}
+
 
 //finds the average from start to last inclusive
 double avg(double* nums, int start, int last){
