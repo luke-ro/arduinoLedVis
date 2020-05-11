@@ -11,9 +11,10 @@ bool buttonState;
 CRGB leds[NUM_LEDS];
 
 int normCoef = 1;
+int maxH = 50;
 
 //variables for FFT
-#define SAMPLES 16              //Must be a power of 2
+#define SAMPLES 16             //Must be a power of 2
 #define SAMPLING_FREQUENCY 10000 //Hz, must be less than 10000 due to ADC
 
 arduinoFFT FFT = arduinoFFT();
@@ -60,25 +61,29 @@ void loop() {
 void runFFT(){
 
   // ++ Sampling
-  for(int i=0; i<SAMPLES; i++)
-   {
-     while(!(ADCSRA & 0x10));        // wait for ADC to complete current conversion ie ADIF bit set
-     ADCSRA = 0b11110101 ;               // clear ADIF bit so that ADC can do next operation (0xf5)
-     int value = ADC - 512 ;                 // Read from ADC and subtract DC offset caused value
-     vReal[i]= value/8;                      // Copy to bins after compressing
-     vImag[i] = 0;
-   }
+  for(int i=0; i<SAMPLES; i++){
+    while(!(ADCSRA & 0x10));        // wait for ADC to complete current conversion ie ADIF bit set
+    ADCSRA = 0b11110101 ;               // clear ADIF bit so that ADC can do next operation (0xf5)
+    int value = ADC - 512 ;                 // Read from ADC and subtract DC offset caused value
+    vReal[i]= value/8;                      // Copy to bins after compressing
+    vImag[i] = 0;
+  }
    // -- Sampling
 
     /*FFT*/
-    FFT.Windowing(vReal, SAMPLES, FFT_WIN_TYP_HAMMING, FFT_FORWARD);
-    FFT.Compute(vReal, vImag, SAMPLES, FFT_FORWARD);
-    FFT.ComplexToMagnitude(vReal, vImag, SAMPLES);
+  FFT.Windowing(vReal, SAMPLES, FFT_WIN_TYP_HAMMING, FFT_FORWARD);
+  FFT.Compute(vReal, vImag, SAMPLES, FFT_FORWARD);
+  FFT.ComplexToMagnitude(vReal, vImag, SAMPLES);
+//  for(int i=0; i<SAMPLES/2; i++){
+//    vReal[i] = constrain(vReal[i],0,100);            // set max & min values for buckets
+//    vReal[i] = map(vReal[i], 0, 100, 0, maxH);
+//  }
 }
 
 void visualize_1(){
   int bassMax,trebMax,bassTemp,trebTemp;
   uint8_t hue;
+  maxH = 50;
   runFFT();
   FastLED.clear();
 
@@ -118,6 +123,7 @@ void visualize_1(){
 }
 
 void visualize_2(){
+  maxH = NUM_LEDS/(SAMPLES/2);
   while(1){
     FastLED.clear();
     runFFT();
