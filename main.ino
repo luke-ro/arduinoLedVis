@@ -74,6 +74,10 @@ void runFFT(){
   FFT.Windowing(vReal, SAMPLES, FFT_WIN_TYP_HAMMING, FFT_FORWARD);
   FFT.Compute(vReal, vImag, SAMPLES, FFT_FORWARD);
   FFT.ComplexToMagnitude(vReal, vImag, SAMPLES);
+//  for(int i=0; i<SAMPLES/2; i++){
+//    vReal[i] = constrain(vReal[i],0,100);            // set max & min values for buckets
+//    vReal[i] = map(vReal[i], 0, 100, 0, maxH);
+//  }
 }
 
 void visualize_1(){
@@ -124,7 +128,9 @@ void visualize_2(){
     FastLED.clear();
     runFFT();
     for(int i=0; i<SAMPLES/2; i++){
-
+    //    Serial.print(i*NUM_LEDS/(SAMPLES/2));
+    //    Serial.print(", ");
+    //    Serial.println(vReal[i]);
       for(int k=i*NUM_LEDS/(SAMPLES/2); k<i*NUM_LEDS/(SAMPLES/2)+vReal[i]; k++){
         leds[k] = CRGB::Blue;
       }
