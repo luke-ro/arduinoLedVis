@@ -30,7 +30,6 @@ void runFFT();
 void visualize();
 double avg(double* nums, int start, int last);
 double findMax(double* nums, int start, int last);
-double sum(double* nums, int start, int last);
 bool hasChanged();
 
 void setup() {
@@ -78,24 +77,20 @@ void runFFT(){
 }
 
 void visualize_1(){
-  int bassMax,trebMax;  //takes the most recent max and decays by one each iteration of the loop
-  int bassTemp,trebTemp;
+  int bassMax,trebMax,bassTemp,trebTemp;
   uint8_t hue;
-
   maxH = 50;
   runFFT();
   FastLED.clear();
 
-  while(!hasChanged()){
-    FastLED.clear();
-
+  while(1){
     bassMax--;
     trebMax--;
     hue++;
 
     runFFT();
 
-
+    FastLED.clear();
 
     //bass visualization
     //    bassTemp = findMax(vReal,0,SAMPLES/4); //largest number in the first half of vReal[]
@@ -119,12 +114,13 @@ void visualize_1(){
      leds[NUM_LEDS/2-i] = CRGB::Green;
     }
     FastLED.show();
+    if(hasChanged()) return;
   }
 }
 
 void visualize_2(){
   maxH = NUM_LEDS/(SAMPLES/2);
-  while(!hasChanged()){
+  while(1){
     FastLED.clear();
     runFFT();
     for(int i=0; i<SAMPLES/2; i++){
@@ -134,6 +130,7 @@ void visualize_2(){
       }
     }
     FastLED.show();
+    if(hasChanged()){return;}
   }
 }
 
@@ -151,14 +148,6 @@ double findMax(double* nums, int start, int last){
   double temp=0;
   for(int i = start; i < last+1; i++){
     if(temp < nums[i]) temp = nums[i];
-  }
-  return temp;
-}
-
-double sum(double* nums, int start, int last){
-  double temp=0;
-  for(int i = start; i < last+1; i++){
-     temp += nums[i];
   }
   return temp;
 }
