@@ -113,8 +113,8 @@ void visualize_1(){
         leds[i] = CHSV(hue,255,255);
         leds[NUM_LEDS-1-i] = CHSV(hue,255,255);
       }else{
-        leds[i] = CHSV(hue,(-255*8/NUM_LEDS)*((bassMax*normCoef*2)-(NUM_LEDS/2)),255);
-        leds[NUM_LEDS-1-i] = CHSV(hue,(-255*8/NUM_LEDS)*((bassMax*normCoef*2)-(NUM_LEDS/2)),255);
+        leds[i] = CHSV(hue,(-255*4/NUM_LEDS)*((bassMax*normCoef*2)-(NUM_LEDS/2)),255);
+        leds[NUM_LEDS-1-i] = CHSV(hue,(-255*4/NUM_LEDS)*((bassMax*normCoef*2)-(NUM_LEDS/2)),255);
       }
     }
 
