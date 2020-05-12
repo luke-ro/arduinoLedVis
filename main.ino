@@ -15,7 +15,7 @@ int maxH = 50;
 
 //variables for FFT
 #define SAMPLES 16             //Must be a power of 2
-#define SAMPLING_FREQUENCY 10000 //Hz, must be less than 10000 due to ADC
+#define SAMPLING_FREQUENCY 4000 //Hz, must be less than 10000 due to ADC
 
 arduinoFFT FFT = arduinoFFT();
 
@@ -57,6 +57,8 @@ void setup() {
 void loop() {
   visualize_1();
   visualize_2();
+  visualize_3();
+  visualize_4();
 
 }
 
@@ -64,11 +66,15 @@ void runFFT(){
 
   // ++ Sampling
   for(int i=0; i<SAMPLES; i++){
+    microseconds = micros();
+
     while(!(ADCSRA & 0x10));        // wait for ADC to complete current conversion ie ADIF bit set
     ADCSRA = 0b11110101 ;               // clear ADIF bit so that ADC can do next operation (0xf5)
     int value = ADC - 512 ;                 // Read from ADC and subtract DC offset caused value
     vReal[i]= value/8;                      // Copy to bins after compressing
     vImag[i] = 0;
+
+    while(micros() < (microseconds + sampling_period_us));
   }
    // -- Sampling
 
@@ -84,28 +90,80 @@ void runFFT(){
 
 void visualize_1(){
 
-  int bassMax=1,trebMax=1;
-  int bassTemp,trebTemp;
+  int bassMax=1;
+  int bassTemp;
+  uint8_t whiteOut = 1; //if the bass maxes out, the background will be "whited out" and will decay
   uint8_t hue=0;
-  //maxH = 50;
-  //runFFT();
-
-  //FastLED.clear();
 
   while(1){
     bassMax--;
-    trebMax--;
     hue++;
+    if(whiteOut>10) whiteOut-=10;
 
     runFFT();
 
     FastLED.clear();
 
     //bass visualization
-    //    bassTemp = findMax(vReal,0,SAMPLES/4); //largest number in the first half of vReal[]
+//    bassTemp = findMax(vReal,0,SAMPLES/8); //largest number in the first quarter of vReal[]
     bassTemp = int(vReal[0]);
-    if(bassTemp>NUM_LEDS/4) bassTemp = NUM_LEDS/4;
+    if(bassTemp>NUM_LEDS/4){
+      bassTemp = NUM_LEDS/4;
+      whiteOut = 255;
+    }
     if(bassTemp>bassMax) bassMax = bassTemp;
+
+    //white out background
+    for(int i=0; i<NUM_LEDS && whiteOut>0; i++){
+      leds[i] = CHSV(0,0,whiteOut);
+    }
+
+    for(int i=0; i<bassMax*normCoef*2 && bassMax*normCoef*2<NUM_LEDS/2; i++){
+      if(bassMax*normCoef*2<NUM_LEDS/8*3){
+        leds[i] = CHSV(hue,255,255);
+        leds[NUM_LEDS-1-i] = CHSV(hue,255,255);
+      }else{
+        leds[i] = CHSV(hue,(-255*4/NUM_LEDS)*((bassMax*normCoef*2)-(NUM_LEDS/2)),255);
+        leds[NUM_LEDS-1-i] = CHSV(hue,(-255*4/NUM_LEDS)*((bassMax*normCoef*2)-(NUM_LEDS/2)),255);
+      }
+    }
+
+    //for(int i=0;i<NUM_LEDS; i++)leds[i] = CHSV(hue,255,255);
+    FastLED.show();
+    if(hasChanged()){ return;}
+  }
+}
+
+void visualize_2(){
+
+  int bassMax=1,trebMax=1;
+  int bassTemp,trebTemp;
+  uint8_t whiteOut = 1; //if the bass maxes out, the background will be "whited out" and will decay
+  uint8_t hue=0;
+
+  while(1){
+    bassMax--;
+    trebMax--;
+    hue++;
+    if(whiteOut>10) whiteOut-=10;
+
+    runFFT();
+
+    FastLED.clear();
+
+    //bass visualization
+//    bassTemp = findMax(vReal,0,SAMPLES/8); //largest number in the first quarter of vReal[]
+    bassTemp = int(vReal[0]);
+    if(bassTemp>NUM_LEDS/4){
+      bassTemp = NUM_LEDS/4;
+      whiteOut = 255;
+    }
+    if(bassTemp>bassMax) bassMax = bassTemp;
+
+    //white out background
+    for(int i=0; i<NUM_LEDS && whiteOut>0; i++){
+      leds[i] = CHSV(0,0,whiteOut);
+    }
 
     for(int i=0; i<bassMax*normCoef*2 && bassMax*normCoef*2<NUM_LEDS/2; i++){
       if(bassMax*normCoef*2<NUM_LEDS/8*3){
@@ -119,8 +177,8 @@ void visualize_1(){
 
 
         //treble visualization
-        // trebTemp = sum(vReal,SAMPLES/4,SAMPLES/2); //largest number in the second half of vReal[]
-        trebTemp = vReal[SAMPLES/8+1];
+//        trebTemp = findMax(vReal,1,SAMPLES/4); //largest number in the second half of vReal[]
+        trebTemp = vReal[SAMPLES/8-1];
         if(trebTemp>NUM_LEDS/4) trebTemp = NUM_LEDS/4;
         if(trebTemp>trebMax) trebMax = trebTemp;
 
@@ -135,14 +193,29 @@ void visualize_1(){
   }
 }
 
-void visualize_2(){
+void visualize_3(){
   uint8_t hue = random8();
   while(1){
     FastLED.clear();
     runFFT();
     for(int i=0; i<SAMPLES/2; i++){
-      for(int k=i*NUM_LEDS/(SAMPLES/2); k<i*NUM_LEDS/(SAMPLES/2)+vReal[i]; k++){
+      for(int k=i*NUM_LEDS/(SAMPLES/2); k<i*NUM_LEDS/(SAMPLES/2)+vReal[i] && k<(i+1)*NUM_LEDS/(SAMPLES/2); k++){
         leds[k] = CHSV(hue+i*255/(SAMPLES/2),255,255);
+      }
+    }
+    FastLED.show();
+    if(hasChanged()){return;}
+  }
+}
+
+void visualize_4(){
+  uint8_t hue = random8();
+  while(1){
+    FastLED.clear();
+    runFFT();
+    for(int i=0; i<SAMPLES/8; i++){
+      for(int k=i*NUM_LEDS/(SAMPLES/8); k<i*NUM_LEDS/(SAMPLES/8)+vReal[i] && k<(i+1)*NUM_LEDS/(SAMPLES/8); k++){
+        leds[k] = CHSV(hue+i*255/(SAMPLES/8),255,255);
       }
     }
     FastLED.show();
