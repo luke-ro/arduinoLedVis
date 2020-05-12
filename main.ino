@@ -32,6 +32,14 @@ double avg(double* nums, int start, int last);
 double findMax(double* nums, int start, int last);
 bool hasChanged();
 
+struct wave{
+  int center;
+  int spread;
+  int amplitude;
+  uint8_t color;
+  uint8_t brightness;
+}wave;
+
 void setup() {
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT);
@@ -88,6 +96,8 @@ void runFFT(){
 //  }
 }
 
+//Profile for controlling the LED strip.
+//Reacts to audio input.
 void visualize_1(){
 
   int bassMax=1;
@@ -95,18 +105,18 @@ void visualize_1(){
   uint8_t whiteOut = 1; //if the bass maxes out, the background will be "whited out" and will decay
   uint8_t hue=0;
 
-  while(1){
-    bassMax--;
-    hue++;
-    if(whiteOut>10) whiteOut-=10;
+  while(!pressed()){
+    bassMax--;//decrement the bass max (causes a decay effect)
+    hue++;    //cycles through all the colors
+    if(whiteOut>10) whiteOut-=10;//decrement the "whiteOut" effect only (if condition is there so it doesn't loop infinitely)
 
     runFFT();
 
     FastLED.clear();
 
     //bass visualization
-//    bassTemp = findMax(vReal,0,SAMPLES/8); //largest number in the first quarter of vReal[]
-    bassTemp = int(vReal[0]);
+    bassTemp = findMax(vReal,0,SAMPLES/8); //largest number in the first quarter of vReal[]
+//    bassTemp = int(vReal[2]);//initial value to determine how many leds to light up in relation to the bass
     if(bassTemp>NUM_LEDS/4){
       bassTemp = NUM_LEDS/4;
       whiteOut = 255;
@@ -118,6 +128,7 @@ void visualize_1(){
       leds[i] = CHSV(0,0,whiteOut);
     }
 
+    //set color values
     for(int i=0; i<bassMax*normCoef*2 && bassMax*normCoef*2<NUM_LEDS/2; i++){
       if(bassMax*normCoef*2<NUM_LEDS/8*3){
         leds[i] = CHSV(hue,255,255);
@@ -127,13 +138,11 @@ void visualize_1(){
         leds[NUM_LEDS-1-i] = CHSV(hue,(-255*4/NUM_LEDS)*((bassMax*normCoef*2)-(NUM_LEDS/2)),255);
       }
     }
-
-    //for(int i=0;i<NUM_LEDS; i++)leds[i] = CHSV(hue,255,255);
     FastLED.show();
-    if(hasChanged()){ return;}
   }
 }
 
+//similar to visualize_1() except a treble visualization is added
 void visualize_2(){
 
   int bassMax=1,trebMax=1;
@@ -141,7 +150,7 @@ void visualize_2(){
   uint8_t whiteOut = 1; //if the bass maxes out, the background will be "whited out" and will decay
   uint8_t hue=0;
 
-  while(1){
+  while(!pressed()){
     bassMax--;
     trebMax--;
     hue++;
@@ -177,8 +186,8 @@ void visualize_2(){
 
 
         //treble visualization
-//        trebTemp = findMax(vReal,1,SAMPLES/4); //largest number in the second half of vReal[]
-        trebTemp = vReal[SAMPLES/8-1];
+        trebTemp = avg(vReal,SAMPLES/4-1,SAMPLES/4);
+//        trebTemp = vReal[SAMPLES/8-1];
         if(trebTemp>NUM_LEDS/4) trebTemp = NUM_LEDS/4;
         if(trebTemp>trebMax) trebMax = trebTemp;
 
@@ -189,13 +198,49 @@ void visualize_2(){
 
     //for(int i=0;i<NUM_LEDS; i++)leds[i] = CHSV(hue,255,255);
     FastLED.show();
-    if(hasChanged()){ return;}
   }
 }
 
+void visualize_chill(){
+  int bass;
+  int bassMax = 0;
+  uint8_t counter = 0;
+  struct wave waves[10];
+  struct wave *ptr;
+  while(!pressed()){
+    runFFT();
+    FastLED.clear();
+    bass = findMax(vReal,0,SAMPLES/8); //largest number in the first quarter of vReal[]
+    if(bass>bassMax) bassMax = bass;
+
+    //make a new/overwrite wave
+    if(bass>bassMax*0.9){
+      ptr = &waves[counter];
+      ptr->center = map(random8(),0,255,0,NUM_LEDS);
+      ptr->spread = 0;
+      ptr->amplitude = 5;
+      ptr->color = random8();
+      ptr->brightness = 255;
+      counter++;
+      counter %= 10;
+    }
+    //iterate through waves
+    for(int i=0; i<counter; i++){
+      ptr = &waves[i];
+      ptr->spread++;
+      ptr->amplitude = 5;
+      ptr->color = random8();
+      ptr->brightness-=10;
+    }
+    //implement linked list for this^^^^^^
+
+  }
+}
+
+//breaks up the LED strip into as many sections as there are frequency buckets
 void visualize_3(){
   uint8_t hue = random8();
-  while(1){
+  while(!pressed()){
     FastLED.clear();
     runFFT();
     for(int i=0; i<SAMPLES/2; i++){
@@ -204,13 +249,13 @@ void visualize_3(){
       }
     }
     FastLED.show();
-    if(hasChanged()){return;}
   }
 }
 
+//shows the first quarter frequency buckets in the same fashion as visualize_3()
 void visualize_4(){
   uint8_t hue = random8();
-  while(1){
+  while(!pressed()){
     FastLED.clear();
     runFFT();
     for(int i=0; i<SAMPLES/8; i++){
@@ -219,7 +264,6 @@ void visualize_4(){
       }
     }
     FastLED.show();
-    if(hasChanged()){return;}
   }
 }
 
@@ -252,16 +296,12 @@ double sum(double* nums, int start, int last){
 }
 
 
-//returns true if the state of BUTTON_PIN is different than buttonState.
-// Changes buttonState to equal BUTTON_PIN
-bool hasChanged(){
+//returns true if the button is currntly pressed
+bool pressed(){
   bool temp = digitalRead(BUTTON_PIN);
-  if(temp!=buttonState){
-
+  if(temp!=0){
     delay(250);
     return 1;
   }
-
-
   return 0;
 }
