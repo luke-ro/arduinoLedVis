@@ -1,5 +1,4 @@
 #include "FastLED.h"
-#define NUM_LEDS
 
 struct Wave{
   int center;
@@ -17,7 +16,8 @@ class Waves{
     Wave* head;
     Wave* tail;
   public:
-    Waves();
+    Waves(int numLeds);
+    ~Waves();
     bool isEmpty();
     void addWave();
     void removeLast();

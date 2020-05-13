@@ -1,7 +1,10 @@
 #include "waves.hpp"
 
-Waves::Waves(){
+Waves::Waves(int numLeds){
   head = NULL;
+  tail = NULL;
+
+  CRGB* leds= New CRGB[numLeds];
 }
 
 Waves::isEmpty(){
@@ -67,9 +70,10 @@ Waves::removeAll(){
   tail = NULL;
 }
 
-// Waves::iterate(){
-//   Wave* temp = tail;
-//   while(temp!=NULL){
-//
-//   }
-// }
+Waves::iterate(){
+  Wave* temp = tail;
+  CRGB* leds= New CRGB[numLeds];
+  while(temp!=NULL){
+
+  }
+}
