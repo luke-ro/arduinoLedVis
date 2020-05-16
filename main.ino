@@ -57,6 +57,7 @@ void setup() {
 }
 
 void loop() {
+  idle_1();
   visualize_1();
   visualize_2();
   visualize_3();
@@ -142,9 +143,9 @@ void visualize_1(){
   }
   //for testing speed
   unsigned long endTime = millis();
-  double loopsPerMillis = double(counter)/(endTime-start);
-  Serial.print("visulaize_1() loops per millisecond: ");
-  Serial.println(loopsPerMillis,5);
+  double milsPerLoop = (endTime-start)/double(counter);
+  Serial.print("visulaize_1() millisecond per loops: ");
+  Serial.println(milsPerLoop,10);
 }
 
 //similar to visualize_1() except a treble visualization is added
@@ -209,9 +210,9 @@ void visualize_2(){
   }
   //for testing speed
   unsigned long endTime = millis();
-  double loopsPerMillis = double(counter)/(endTime-start);
-  Serial.print("visulaize_2() loops per millisecond: ");
-  Serial.println(loopsPerMillis,5);
+  double milsPerLoop = (endTime-start)/double(counter);
+  Serial.print("visulaize_2() millisecond per loops: ");
+  Serial.println(milsPerLoop,10);
 }
 
 //void visualize_chill(){
@@ -281,7 +282,27 @@ void visualize_4(){
 }
 
 void idle_1(){
+  unsigned long start = millis();
+  int counter=0;
 
+  uint8_t hue = 0;
+  uint8_t phase = 0;
+  while(!pressed()){
+    FastLED.clear();
+    counter++;
+    phase++;
+    hue++;
+    for(int i=0; i<NUM_LEDS; i++){
+      leds[i] = CHSV(uint8_t(hue-i),255,127*(-approxSin(0.1*i+.0246*phase)+1));
+    }
+    FastLED.show();
+  }
+
+  //for testing speed
+  unsigned long endTime = millis();
+  double milsPerLoop = (endTime-start)/double(counter);
+  Serial.print("idle_1() millisecond per loops: ");
+  Serial.println(milsPerLoop,10);
 }
 
 
@@ -312,8 +333,15 @@ double sum(double* nums, int start, int last){
   return temp;
 }
 
+//uses two parabolas to approximate sine
+//see https://www.desmos.com/calculator/iyns9zodn8
 double approxSin(double theta){
-
+  theta = fmod(theta,6.2832);
+  if(theta<3.1416){
+    return -0.405285*pow(theta-1.5708,2)+1; //-4(pi^-2)(theta-pi/2)^2+1
+  }else{
+    return  0.405285*pow(theta-4.7124,2)-1; //4(pi^-2)(theta-3pi/2)^2-1
+  }
 }
 
 //returns true if the button is currntly pressed
