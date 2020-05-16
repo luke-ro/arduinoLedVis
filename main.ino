@@ -18,7 +18,7 @@ int maxH = 50;
 
 //variables for FFT
 #define SAMPLES 16             //Must be a power of 2
-#define SAMPLING_FREQUENCY 4000 //Hz, must be less than 10000 due to ADC
+#define SAMPLING_FREQUENCY 2000 //Hz, must be less than 10000 due to ADC
 
 arduinoFFT FFT = arduinoFFT();
 
@@ -52,7 +52,6 @@ void setup() {
     delay(50);
     digitalWrite(LED_BUILTIN, LOW);
     delay(50);
-
   }
   Serial.println("begin");
 }
@@ -94,6 +93,9 @@ void runFFT(){
 //Profile for controlling the LED strip.
 //Reacts to audio input.
 void visualize_1(){
+  unsigned long start = millis();
+  int counter=0;
+
   double absoluteMax = 0;
   int bassMax=1;
   int bassTemp;
@@ -101,24 +103,24 @@ void visualize_1(){
   uint8_t hue=0;
 
   while(!pressed()){
-    bassMax--;//decrement the bass max (causes a decay effect)
+    bassMax-=2;//decrement the bass max (causes a decay effect)
     hue++;    //cycles through all the colors
+    counter++;
     if(whiteOut>10) whiteOut-=10;//decrement the "whiteOut" effect only (if condition is there so it doesn't loop infinitely)
 
     runFFT();
-
     FastLED.clear();
 
     //bass visualization
     bassTemp = findMax(vReal,0,SAMPLES/8); //largest number in the first quarter of vReal[]
-//    bassTemp = int(vReal[2]);//initial value to determine how many leds to light up in relation to the bass
+//    bassTemp = vReal[1];//initial value to determine how many leds to light up in relation to the bass
     if(bassTemp>NUM_LEDS/4){
       bassTemp = NUM_LEDS/4;
       whiteOut = 255;
     }
 
     if(absoluteMax<bassTemp) absoluteMax = bassTemp;
-    bassTemp = map(bassTemp,0,int(absoluteMax*1.1),0,NUM_LEDS/2);
+    bassTemp = map(bassTemp,0,absoluteMax*1.1,0,NUM_LEDS/2);
     if(bassTemp>bassMax) bassMax = bassTemp;
 
     //white out background
@@ -138,10 +140,17 @@ void visualize_1(){
     }
     FastLED.show();
   }
+  //for testing speed
+  unsigned long endTime = millis();
+  double loopsPerMillis = double(counter)/(endTime-start);
+  Serial.print("visulaize_1() loops per millisecond: ");
+  Serial.println(loopsPerMillis,5);
 }
 
 //similar to visualize_1() except a treble visualization is added
 void visualize_2(){
+  unsigned long start = millis();
+  int counter=0;
 
   int bassMax=1,trebMax=1;
   int bassTemp,trebTemp;
@@ -151,6 +160,7 @@ void visualize_2(){
   while(!pressed()){
     bassMax--;
     trebMax--;
+    counter++;
     hue++;
     if(whiteOut>10) whiteOut-=10;
 
@@ -197,6 +207,11 @@ void visualize_2(){
     //for(int i=0;i<NUM_LEDS; i++)leds[i] = CHSV(hue,255,255);
     FastLED.show();
   }
+  //for testing speed
+  unsigned long endTime = millis();
+  double loopsPerMillis = double(counter)/(endTime-start);
+  Serial.print("visulaize_2() loops per millisecond: ");
+  Serial.println(loopsPerMillis,5);
 }
 
 //void visualize_chill(){
