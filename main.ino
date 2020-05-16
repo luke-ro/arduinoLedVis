@@ -1,6 +1,9 @@
 #include "arduinoFFT.h"
 #include "FastLED.h"
+//#inlcude "waves.h"
 #include <SPI.h>
+//#include <cmath>
+
 
 #define BUTTON_PIN 7
 bool buttonState;
@@ -31,14 +34,6 @@ void visualize();
 double avg(double* nums, int start, int last);
 double findMax(double* nums, int start, int last);
 bool hasChanged();
-
-struct wave{
-  int center;
-  int spread;
-  int amplitude;
-  uint8_t color;
-  uint8_t brightness;
-}wave;
 
 void setup() {
   Serial.begin(115200);
@@ -99,7 +94,7 @@ void runFFT(){
 //Profile for controlling the LED strip.
 //Reacts to audio input.
 void visualize_1(){
-
+  double absoluteMax = 0;
   int bassMax=1;
   int bassTemp;
   uint8_t whiteOut = 1; //if the bass maxes out, the background will be "whited out" and will decay
@@ -121,6 +116,9 @@ void visualize_1(){
       bassTemp = NUM_LEDS/4;
       whiteOut = 255;
     }
+
+    if(absoluteMax<bassTemp) absoluteMax = bassTemp;
+    bassTemp = map(bassTemp,0,int(absoluteMax*1.1),0,NUM_LEDS/2);
     if(bassTemp>bassMax) bassMax = bassTemp;
 
     //white out background
@@ -129,13 +127,13 @@ void visualize_1(){
     }
 
     //set color values
-    for(int i=0; i<bassMax*normCoef*2 && bassMax*normCoef*2<NUM_LEDS/2; i++){
-      if(bassMax*normCoef*2<NUM_LEDS/8*3){
+    for(int i=0; i<bassMax && bassMax<NUM_LEDS/2; i++){
+      if(bassMax<NUM_LEDS/8*3){
         leds[i] = CHSV(hue,255,255);
         leds[NUM_LEDS-1-i] = CHSV(hue,255,255);
       }else{
-        leds[i] = CHSV(hue,(-255*4/NUM_LEDS)*((bassMax*normCoef*2)-(NUM_LEDS/2)),255);
-        leds[NUM_LEDS-1-i] = CHSV(hue,(-255*4/NUM_LEDS)*((bassMax*normCoef*2)-(NUM_LEDS/2)),255);
+        leds[i] = CHSV(hue,(-255*4/NUM_LEDS)*((bassMax)-(NUM_LEDS/2)),255);
+        leds[NUM_LEDS-1-i] = CHSV(hue,(-255*4/NUM_LEDS)*((bassMax)-(NUM_LEDS/2)),255);
       }
     }
     FastLED.show();
@@ -201,41 +199,41 @@ void visualize_2(){
   }
 }
 
-void visualize_chill(){
-  int bass;
-  int bassMax = 0;
-  uint8_t counter = 0;
-  struct wave waves[10];
-  struct wave *ptr;
-  while(!pressed()){
-    runFFT();
-    FastLED.clear();
-    bass = findMax(vReal,0,SAMPLES/8); //largest number in the first quarter of vReal[]
-    if(bass>bassMax) bassMax = bass;
-
-    //make a new/overwrite wave
-    if(bass>bassMax*0.9){
-      ptr = &waves[counter];
-      ptr->center = map(random8(),0,255,0,NUM_LEDS);
-      ptr->spread = 0;
-      ptr->amplitude = 5;
-      ptr->color = random8();
-      ptr->brightness = 255;
-      counter++;
-      counter %= 10;
-    }
-    //iterate through waves
-    for(int i=0; i<counter; i++){
-      ptr = &waves[i];
-      ptr->spread++;
-      ptr->amplitude = 5;
-      ptr->color = random8();
-      ptr->brightness-=10;
-    }
-    //implement linked list for this^^^^^^
-
-  }
-}
+//void visualize_chill(){
+//  int bass;
+//  int bassMax = 0;
+//  uint8_t counter = 0;
+//  struct wave waves[10];
+//  struct wave *ptr;
+//  while(!pressed()){
+//    runFFT();
+//    FastLED.clear();
+//    bass = findMax(vReal,0,SAMPLES/8); //largest number in the first quarter of vReal[]
+//    if(bass>bassMax) bassMax = bass;
+//
+//    //make a new/overwrite wave
+//    if(bass>bassMax*0.9){
+//      ptr = &waves[counter];
+//      ptr->center = map(random8(),0,255,0,NUM_LEDS);
+//      ptr->spread = 0;
+//      ptr->amplitude = 5;
+//      ptr->color = random8();
+//      ptr->brightness = 255;
+//      counter++;
+//      counter %= 10;
+//    }
+//    //iterate through waves
+//    for(int i=0; i<counter; i++){
+//      ptr = &waves[i];
+//      ptr->spread++;
+//      ptr->amplitude = 5;
+//      ptr->color = random8();
+//      ptr->brightness-=10;
+//    }
+//    //implement linked list for this^^^^^^
+//
+//  }
+//}
 
 //breaks up the LED strip into as many sections as there are frequency buckets
 void visualize_3(){
@@ -267,6 +265,10 @@ void visualize_4(){
   }
 }
 
+void idle_1(){
+
+}
+
 
 
 //finds the average from start to last inclusive
@@ -295,6 +297,9 @@ double sum(double* nums, int start, int last){
   return temp;
 }
 
+double approxSin(double theta){
+
+}
 
 //returns true if the button is currntly pressed
 bool pressed(){
