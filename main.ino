@@ -57,12 +57,27 @@ void setup() {
 }
 
 void loop() {
+//  test();
   idle_1();
-  visualize_1();
-  visualize_2();
-  visualize_3();
-  visualize_4();
+//  visualize_1();
+//  visualize_2();
+//  visualize_3();
+//  visualize_4();
 
+}
+
+void test(){
+  unsigned long start = millis();
+  unsigned long counter=0;
+  while(!pressed()){
+    approxSin(counter++);
+  }
+  unsigned long endTime = millis();
+  double milsPerLoop = (endTime-start)/double(counter);
+  Serial.print("test() milliseconds per ");
+  Serial.print(counter);
+  Serial.print(" loops: ");
+  Serial.println(milsPerLoop,10);
 }
 
 void runFFT(){
@@ -293,7 +308,7 @@ void idle_1(){
     phase++;
     hue++;
     for(int i=0; i<NUM_LEDS; i++){
-      leds[i] = CHSV(uint8_t(hue-i),255,127*(-approxSin(0.1*i+.0246*phase)+1));
+      leds[i] = CHSV(uint8_t(i+hue),255,127*(-approxSin(0.05*i+.0246*phase)+1));
     }
     FastLED.show();
   }
