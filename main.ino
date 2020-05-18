@@ -64,15 +64,15 @@ void visualize_5(){
       FastLED.clear();
       struct Wave* thisWave = &bassWaves[count%len];
 
-      for(int i=bassWaves[count].center-bassWaves[count].radius; i<bassWaves[count].center+bassWaves[count].radius; i++){
-        Serial.print(bassWaves[count].center);
-        Serial.print(" ");
-        if(i>-1 && i<NUM_LEDS+1){
+      for(int i=thisWave->center-thisWave->radius; i<thisWave->center+thisWave->radius; i++){
 
-          leds[i] = CHSV(bassWaves[count].hue,(bassWaves[count].saturation)*approxCos(3.14*i/bassWaves[count].radius),bassWaves[count].brightness);
+        if(i>-1 && i<NUM_LEDS+1){
+          Serial.print(127.5*(approxCos(3.14*(double(i)-thisWave->center)/thisWave->radius)+1));
+          Serial.print(" ");
+          leds[i] = CHSV(thisWave->hue,(thisWave->saturation),127.5*(approxCos(3.14*(double(i)-thisWave->center)/thisWave->radius)+1));
         }
       }
-      bassWaves[count].center++;
+      thisWave->center++;
       Serial.println();
       FastLED.show();
     }
@@ -402,9 +402,18 @@ double sum(double* nums, int start, int last){
 }
 
 //uses two parabolas to approximate sine
-//see https://www.desmos.com/calculator/iyns9zodn8
+//see https://www.desmos.com/calculator/vvd2lmtpwy
 double approxSin(double theta){
   theta = fmod(theta,6.2832);
+  if(theta<0){//since sine is an odd fuction, the results can be multiplied by (-1) if theta is (-)
+    theta = -theta;
+    if(theta<3.1416){
+      return 0.405285*pow(theta-1.5708,2)-1; //-4(pi^-2)(theta-pi/2)^2+1
+    }else{
+      return  -0.405285*pow(theta-4.7124,2)+1; //4(pi^-2)(theta-3pi/2)^2-1
+    }
+  }
+
   if(theta<3.1416){
     return -0.405285*pow(theta-1.5708,2)+1; //-4(pi^-2)(theta-pi/2)^2+1
   }else{
@@ -413,12 +422,15 @@ double approxSin(double theta){
 }
 
 double approxCos(double theta){
-  theta = fmod(theta-1.5708,6.2832);
-  if(theta<3.1416){
-    return -0.405285*pow(theta-1.5708,2)+1; //-4(pi^-2)(theta-pi/2)^2+1
-  }else{
-    return  0.405285*pow(theta-4.7124,2)-1; //4(pi^-2)(theta-3pi/2)^2-1
+  theta = fmod(theta,6.2832);
+  if(theta<0) theta=-theta;
+  if(theta<1.5708){
+    return -0.405285*pow(theta,2)+1; //-4(pi^-2)(theta)^2+1
   }
+  if(theta<4.7123){
+    return 0.405285*pow(theta-3.1416,2)-1; //4(pi^-2)(theta-pi)^2-1
+  }
+  return -0.405285*pow(theta-6.2832,2)+1; //-4(pi^-2)(theta-2pi)^2+1
 }
 
 //returns true if the button is currntly pressed
