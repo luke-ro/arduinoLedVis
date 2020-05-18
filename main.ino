@@ -45,7 +45,9 @@ struct Wave{
 };
 
 void visualize_5(){
-  int len = 10;
+  int len = 25;
+  int bassDelay = 175;//time in milliseconds between creation of bass waves
+  unsigned long lastBass=millis();
   double bassValue, bassAbsoluteMax=0;
   struct Wave bassWaves[len];
 //  struct Wave midWaves[len];
@@ -53,29 +55,37 @@ void visualize_5(){
   int bassStart= 0, bassEnd= 0;
 //  int midStart = 0, midEnd = 0;
 //  int highStart= 0, highEnd= 0;
-  newWave(bassWaves,bassEnd++%len);
+  //newWave(bassWaves,bassEnd++%len);
   while(!pressed()){
+    runFFT();
+
     bassValue = findMax(vReal,0,SAMPLES/8); //largest number in the first quarter of vReal[]
     if(bassValue>bassAbsoluteMax) bassAbsoluteMax=bassValue;
-//    if(bassValue>bassAbsoluteMax*1.1) newWave(bassWaves,bassEnd++%len);
+    if(bassValue>bassAbsoluteMax*0.7 && bassDelay<millis()-lastBass){
+      newWave(bassWaves,bassEnd++%len);
+      lastBass = millis();
+    }
     int count = bassStart%len;
-    Serial.print("here");
-    for(int count=bassStart; count%len!=bassEnd%len; count=++count%len){
-      FastLED.clear();
-      struct Wave* thisWave = &bassWaves[count%len];
+    FastLED.clear();
+    for(int count=bassStart%len; count%len!=bassEnd%len; count= ++count%len){
+
+      struct Wave* thisWave = &bassWaves[count];
 
       for(int i=thisWave->center-thisWave->radius; i<thisWave->center+thisWave->radius; i++){
 
         if(i>-1 && i<NUM_LEDS+1){
-          Serial.print(127.5*(approxCos(3.14*(double(i)-thisWave->center)/thisWave->radius)+1));
-          Serial.print(" ");
-          leds[i] = CHSV(thisWave->hue,(thisWave->saturation),127.5*(approxCos(3.14*(double(i)-thisWave->center)/thisWave->radius)+1));
+//          Serial.print(127.5*(approxCos(3.14*(double(i)-thisWave->center)/thisWave->radius)+1));
+//          Serial.print(" ");
+          leds[i] = CHSV(thisWave->hue,thisWave->saturation, thisWave->brightness/2*(approxCos(3.14*(double(i)-thisWave->center)/thisWave->radius)+1));
         }
       }
       thisWave->center++;
-      Serial.println();
-      FastLED.show();
+      //thisWave->brightness = -255/(thisWave->radius+NUM_LEDS)*thisWave->center+255;
+      if(thisWave->center-thisWave->radius > NUM_LEDS) bassStart = ++bassStart%len;
+//      Serial.println();
+
     }
+    FastLED.show();
   }
 }
 
@@ -402,6 +412,7 @@ double sum(double* nums, int start, int last){
 }
 
 //uses two parabolas to approximate sine
+//Can have error as high as 27%
 //see https://www.desmos.com/calculator/vvd2lmtpwy
 double approxSin(double theta){
   theta = fmod(theta,6.2832);
@@ -416,11 +427,14 @@ double approxSin(double theta){
 
   if(theta<3.1416){
     return -0.405285*pow(theta-1.5708,2)+1; //-4(pi^-2)(theta-pi/2)^2+1
-  }else{
-    return  0.405285*pow(theta-4.7124,2)-1; //4(pi^-2)(theta-3pi/2)^2-1
   }
+  return  0.405285*pow(theta-4.7124,2)-1; //4(pi^-2)(theta-3pi/2)^2-1
+
 }
 
+//approximates cosine using parabolas.
+//Can have error as high as 27%
+//https://www.desmos.com/calculator/m7hfy64b4e
 double approxCos(double theta){
   theta = fmod(theta,6.2832);
   if(theta<0) theta=-theta;
