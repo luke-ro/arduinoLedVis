@@ -35,6 +35,47 @@ double avg(double* nums, int start, int last);
 double findMax(double* nums, int start, int last);
 bool hasChanged();
 
+struct Wave{
+  int center;
+  int radius;
+  int amplitude;
+  uint8_t hue;
+  uint8_t saturation;
+  uint8_t brightness;
+};
+
+void visulaize_5(){
+  int len = 10;
+  double bassValue, bassAbsoluteMax=0;
+  struct Wave bassWaves[len];
+  struct Wave midWaves[len];
+  struct Wave highWaves[len];
+  int bassStart= 0, bassEnd= 0;
+  int midStart = 0, midEnd = 0;
+  int highStart= 0, highEnd= 0;
+
+  bassValue = findMax(vReal,0,SAMPLES/8); //largest number in the first quarter of vReal[]
+  if(bassValue>bassAbsoluteMax) bassAbsoluteMax=bassValue;
+  if(bassValue>bassAbsoluteMax*1.1) newWave(bassWaves,bassEnd++);
+  int count = bassStart;
+  do{
+    struct Wave* thisWave = bassWaves[count++];
+    for(int i=thisWave->center-thisWave->radius; i<thisWave->center+thisWave->radius; i++){
+      if(i>0 && i<NUM_LEDS){
+        leds[i] = CHSV(thisWave->hue,(thisWave->saturation)*approxCos(),thisWave->brightness)
+      }
+    }
+  }while(count!=bassEnd);
+}
+
+void newWave(struct Wave* arr, int index){
+  arr[index].center = 0;
+  arr[index].radius = 10;
+  arr[index].hue = random8();
+  arr[index].saturation = 255;
+  arr[index].brightness = 255;
+}
+
 void setup() {
   Serial.begin(115200);
   pinMode(LED_BUILTIN, OUTPUT);
@@ -352,6 +393,15 @@ double sum(double* nums, int start, int last){
 //see https://www.desmos.com/calculator/iyns9zodn8
 double approxSin(double theta){
   theta = fmod(theta,6.2832);
+  if(theta<3.1416){
+    return -0.405285*pow(theta-1.5708,2)+1; //-4(pi^-2)(theta-pi/2)^2+1
+  }else{
+    return  0.405285*pow(theta-4.7124,2)-1; //4(pi^-2)(theta-3pi/2)^2-1
+  }
+}
+
+double approxCos(double theta){
+  theta = fmod(theta-1.5708,6.2832);
   if(theta<3.1416){
     return -0.405285*pow(theta-1.5708,2)+1; //-4(pi^-2)(theta-pi/2)^2+1
   }else{
