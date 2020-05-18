@@ -44,28 +44,39 @@ struct Wave{
   uint8_t brightness;
 };
 
-void visulaize_5(){
+void visualize_5(){
   int len = 10;
   double bassValue, bassAbsoluteMax=0;
   struct Wave bassWaves[len];
-  struct Wave midWaves[len];
-  struct Wave highWaves[len];
+//  struct Wave midWaves[len];
+//  struct Wave highWaves[len];
   int bassStart= 0, bassEnd= 0;
-  int midStart = 0, midEnd = 0;
-  int highStart= 0, highEnd= 0;
+//  int midStart = 0, midEnd = 0;
+//  int highStart= 0, highEnd= 0;
+  newWave(bassWaves,bassEnd++%len);
+  while(!pressed()){
+    bassValue = findMax(vReal,0,SAMPLES/8); //largest number in the first quarter of vReal[]
+    if(bassValue>bassAbsoluteMax) bassAbsoluteMax=bassValue;
+//    if(bassValue>bassAbsoluteMax*1.1) newWave(bassWaves,bassEnd++%len);
+    int count = bassStart%len;
+    Serial.print("here");
+    for(int count=bassStart; count%len!=bassEnd%len; count=++count%len){
+      FastLED.clear();
+      struct Wave* thisWave = &bassWaves[count%len];
 
-  bassValue = findMax(vReal,0,SAMPLES/8); //largest number in the first quarter of vReal[]
-  if(bassValue>bassAbsoluteMax) bassAbsoluteMax=bassValue;
-  if(bassValue>bassAbsoluteMax*1.1) newWave(bassWaves,bassEnd++);
-  int count = bassStart;
-  do{
-    struct Wave* thisWave = bassWaves[count++];
-    for(int i=thisWave->center-thisWave->radius; i<thisWave->center+thisWave->radius; i++){
-      if(i>0 && i<NUM_LEDS){
-        leds[i] = CHSV(thisWave->hue,(thisWave->saturation)*approxCos(),thisWave->brightness)
+      for(int i=bassWaves[count].center-bassWaves[count].radius; i<bassWaves[count].center+bassWaves[count].radius; i++){
+        Serial.print(bassWaves[count].center);
+        Serial.print(" ");
+        if(i>-1 && i<NUM_LEDS+1){
+
+          leds[i] = CHSV(bassWaves[count].hue,(bassWaves[count].saturation)*approxCos(3.14*i/bassWaves[count].radius),bassWaves[count].brightness);
+        }
       }
+      bassWaves[count].center++;
+      Serial.println();
+      FastLED.show();
     }
-  }while(count!=bassEnd);
+  }
 }
 
 void newWave(struct Wave* arr, int index){
