@@ -95,7 +95,7 @@ void setup() {
   ADMUX = 0b00000000;       // use pin A0 and external voltage reference
 
   FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
-  FastLED.setBrightness(100);
+//  FastLED.setBrightness(100);
 
   sampling_period_us = round(1000000*(1.0/SAMPLING_FREQUENCY));
 
@@ -115,6 +115,7 @@ void loop() {
 //  visualize_2();
 //  visualize_3();
 //  visualize_4();
+  visualize_5();
 
 }
 
