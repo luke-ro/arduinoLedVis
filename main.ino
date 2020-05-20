@@ -71,7 +71,7 @@ void loop() {
   idle_1();
 //  visualize_1();
 //  visualize_2();
-//  visualize_3();
+  visualize_3();
 //  visualize_4();
 //  visualize_5();
   visualize_6();
@@ -321,51 +321,71 @@ void visualize_6(){
   int len = 10; //size of arrays
   int bassDelay = 250;//time in milliseconds between creation of bass waves
   unsigned long lastBass=millis();
-  unsigned long startTime = millis();
+  unsigned long resetTime = millis();
   double bassValue, bassAbsoluteMax=0;
   struct Wave bassWaves[len];
+
+
 //  struct Wave midWaves[len];
 //  struct Wave highWaves[len];
   int bassStart= 0, bassEnd= 0;
 //  int midStart = 0, midEnd = 0;
 //  int highStart= 0, highEnd= 0;
   //newWave(bassWaves,bassEnd++%len);
+  for(int i=0; i<len; i++) newWave(bassWaves,i,-100,0,0,0,0); //assigns a value to each wave in the array
+  unsigned long counter=0;
+  unsigned long startTime = millis();                                                              //to get rid of trash values
   while(!pressed()){
     runFFT();
-    if(millis()-startTime>120000){//resets the bass absolute max after 2 minutes
-      startTime=millis();
+    if(millis()-resetTime>10000){//resets the bass absolute max after 2 minutes
+      resetTime=millis();
       bassAbsoluteMax /= 2;
     }
     bassValue = findMax(vReal,0,1); //largest number in the first quarter of vReal[]
 //    bassValue = vReal[0];
     if(bassValue>bassAbsoluteMax) bassAbsoluteMax=bassValue;
     if(bassValue>bassAbsoluteMax*0.5 && bassDelay<millis()-lastBass){
-      newWave(bassWaves,bassEnd++%len,int(random(NUM_LEDS)),0,random8(),255,255);
+      newWave(bassWaves,bassEnd%len,int(random(NUM_LEDS)),0,random8(),255,255);
+      if(bassEnd++==bassStart-1) bassStart=++bassStart%len;
       lastBass = millis();
+//      Serial.print(bassEnd);
+//      Serial.print(" ");
     }
     int count = bassStart%len;
     FastLED.clear();
+    for(int i=0; i<NUM_LEDS; i++) leds[i] = CHSV(0,0,1);      //creates a white background
     for(int count=bassStart%len; count%len!=bassEnd%len; count= ++count%len){
 
       struct Wave* thisWave = &bassWaves[count];
-
+      int center = thisWave->center;
+      int radius = thisWave->radius;
+      double piDivRadius = 3.1415/thisWave->radius;
+      double centerxPiDivRadius = thisWave->center*piDivRadius;
+      double brightnessDiv2 = thisWave->brightness/2;
       for(int i=thisWave->center-thisWave->radius; i<thisWave->center+thisWave->radius; i++){
 
         if(i>-1 && i<NUM_LEDS+1){
 //          Serial.print(127.5*(approxCos(3.14*(double(i)-thisWave->center)/thisWave->radius)+1));
 //          Serial.print(" ");
-          leds[i] += CHSV(thisWave->hue,thisWave->saturation, thisWave->brightness/2*(approxCos(3.14*(double(i)-thisWave->center)/thisWave->radius)+1));
+//          leds[i] += CHSV(thisWave->hue,255, thisWave->brightness/2*(approxCos(3.14*(double(i)-thisWave->center)/thisWave->radius)+1));
+          leds[i] += CHSV(thisWave->hue,255, brightnessDiv2*(approxCos(piDivRadius*i-centerxPiDivRadius))+brightnessDiv2);
         }
       }
-      thisWave->radius++;
+      thisWave->radius+=2;
       thisWave->brightness-=5;
       //thisWave->brightness = -255/(thisWave->radius+NUM_LEDS)*thisWave->center+255;
       if(thisWave->brightness<1) bassStart = ++bassStart%len;
 //      Serial.println();
 
     }
+    counter++;
     FastLED.show();
   }
+    //for testing speed
+  unsigned long endTime = millis();
+  double milsPerLoop = (endTime-startTime)/double(counter);
+  Serial.print("visulaize_6() millisecond per loop: ");
+  Serial.println(milsPerLoop,10);
 }
 
 void random_bumps(){
